@@ -165,38 +165,44 @@ def view(request):
 
 # New Added
 def details(request,courseid):
-    user = request.user
-    cert = certificate.objects.filter(users = user) 
-    cert = certificate.objects.get(courseid = courseid)
-            
-    return render(request , 'Certificates/CertificateDetails.html' , {"certi":cert})
+    if not request.user.is_authenticated:
+        return HttpResponseRedirect(reverse("Certificates:login"))
+    else:
+        user = request.user
+        cert = certificate.objects.filter(users = user) 
+        cert = certificate.objects.get(courseid = courseid)
+                
+        return render(request , 'Certificates/CertificateDetails.html' , {"certi":cert})
    
    
   
 def detailsAdd(request,courseid):
-    user = request.user
-    cert = certificate.objects.filter(users = user) 
-    cert = certificate.objects.get(courseid = courseid)
-    
-    try:
-        grantedCert = granted.objects.get(user = user , course = cert)
+    if not request.user.is_authenticated:
+        return HttpResponseRedirect(reverse("Certificates:login"))
+    else:
+        user = request.user
+        cert = certificate.objects.filter(users = user) 
+        cert = certificate.objects.get(courseid = courseid)
         
-        if grantedCert is not None:
-            messages.error(request,"This certificate is already chosen!!")
+        try:
+            grantedCert = granted.objects.get(user = user , course = cert)
             
+            if grantedCert is not None:
+                messages.error(request,"This certificate is already chosen!!")
+                
+                            
+        except ObjectDoesNotExist:
+            if request.method == "POST":
+                    formdata = detailsAddCerti(request.POST)
                         
-    except ObjectDoesNotExist:
-        if request.method == "POST":
-                formdata = detailsAddCerti(request.POST)
-                    
-                if formdata.is_valid():
-                    cdate = formdata.cleaned_data['cdate']
-                    cEndDate = formdata.cleaned_data['cEndDate']
-                    g= granted(course = cert , user = user , grantedDate = cdate , cEndDate = cEndDate)
-                    g.save()
-                    
-                    messages.success(request,f"The {cert.ccompany}'s {cert.cname} has been added to my certificate successfuly")  
-                    return HttpResponseRedirect(reverse("Certificates:menu"))
+                    if formdata.is_valid():
+                        cdate = formdata.cleaned_data['cdate']
+                        cEndDate = formdata.cleaned_data['cEndDate']
+                        g= granted(course = cert , user = user , grantedDate = cdate , cEndDate = cEndDate)
+                        g.save()
+                        
+                        messages.success(request,f"The {cert.ccompany}'s {cert.cname} has been added to my certificate successfuly")  
+                        return HttpResponseRedirect(reverse("Certificates:menu"))
         
 
             
